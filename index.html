@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D.B Power Tool Stock</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .tab-content { display: none; }
+        .tab-active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen pb-24">
+
+    <header class="bg-white shadow-sm p-4 sticky top-0 z-10">
+        <h1 id="page-title" class="text-xl font-bold text-gray-800">D.B Power Tool Stock</h1>
+    </header>
+
+    <main class="p-4 space-y-6">
+        
+        <div id="quick-actions" class="grid grid-cols-2 gap-4">
+            <button onclick="openScanner('add')" class="flex flex-col items-center justify-center p-6 bg-green-600 text-white rounded-2xl shadow-lg hover:bg-green-700 transition-colors">
+                <i data-lucide="plus-circle" class="w-8 h-8 mb-2"></i>
+                <span class="font-bold">Restock Item</span>
+            </button>
+            <button onclick="openScanner('sell')" class="flex flex-col items-center justify-center p-6 bg-red-600 text-white rounded-2xl shadow-lg hover:bg-red-700 transition-colors">
+                <i data-lucide="shopping-cart" class="w-8 h-8 mb-2"></i>
+                <span class="font-bold">Sell Item</span>
+            </button>
+        </div>
+
+        <div id="view-inventory" class="tab-content tab-active space-y-4">
+            <h2 class="text-lg font-semibold text-gray-700">Current Stock</h2>
+            <div id="inventory-list" class="space-y-3"></div>
+        </div>
+
+        <div id="view-history" class="tab-content space-y-4">
+            <h2 class="text-lg font-semibold text-gray-700">Daily History</h2>
+            <div id="history-list" class="space-y-3"></div>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-around">
+        <button onclick="switchTab('inventory')" class="flex flex-col items-center text-blue-600"><i data-lucide="package"></i><span class="text-xs mt-1">Stock</span></button>
+        <button onclick="switchTab('history')" class="flex flex-col items-center text-gray-600"><i data-lucide="history"></i><span class="text-xs mt-1">History</span></button>
+    </nav>
+
+    <div id="scanner-view" class="fixed inset-0 bg-white z-50 hidden">
+        <div class="h-full flex flex-col">
+            <div class="p-4 flex justify-between items-center bg-gray-100">
+                <h2 id="scanner-title" class="text-lg font-semibold">Scanning...</h2>
+                <button onclick="closeScanner()" class="p-2 bg-white rounded-lg border">Close</button>
+            </div>
+            <div id="reader" class="flex-grow w-full"></div>
+        </div>
+    </div>
+
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <h3 id="modal-title" class="text-xl font-bold mb-2"></h3>
+            <p id="modal-desc" class="text-gray-600 mb-4"></p>
+            <input type="number" id="qty-input" class="w-full border p-3 rounded-lg mb-4 text-lg" placeholder="Enter quantity">
+            <button id="modal-action-btn" class="w-full p-3 rounded-lg text-white font-bold"></button>
+            <button onclick="closeModal()" class="w-full mt-3 text-gray-500 font-medium">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let inventory = JSON.parse(localStorage.getItem('store_inventory')) || [];
+        let history = JSON.parse(localStorage.getItem('store_history')) || [];
+        let activeOp = null; 
+        let activeId = null;
+
+        function render() {
+            const list = document.getElementById('inventory-list');
+            list.innerHTML = inventory.length === 0 
+                ? '<p class="text-center text-gray-500 mt-10">No items scanned yet.</p>'
+                : inventory.map(item => `
+                <div class="bg-white p-4 rounded-xl shadow-sm border ${item.qty <= item.threshold ? 'border-red-300 bg-red-50' : 'border-gray-100'}">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-gray-800">${item.name}</h3>
+                            <p class="text-sm text-gray-500">Stock: ${item.qty}</p>
+                        </div>
+                        ${item.qty <= item.threshold ? '<span class="text-red-600 font-bold text-xs bg-red-100 px-2 py-1 rounded">LOW</span>' : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            const hist = document.getElementById('history-list');
+            if (history.length === 0) {
+                hist.innerHTML = '<p class="text-center text-gray-500 mt-10">No history available.</p>';
+            } else {
+                const grouped = history.reduce((acc, h) => {
+                    if (!acc[h.dateStr]) acc[h.dateStr] = [];
+                    acc[h.dateStr].push(h);
+                    return acc;
+                }, {});
+
+                hist.innerHTML = Object.keys(grouped).reverse().map(date => `
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">${date}</h3>
+                        ${grouped[date].slice().reverse().map(h => `
+                            <div class="bg-white p-3 rounded-lg border flex justify-between items-center">
+                                <div>
+                                    <p class="font-semibold">${h.name}</p>
+                                    <p class="text-xs text-gray-500">${h.type.toUpperCase()} @ ${h.time}</p>
+                                </div>
+                                <span class="font-bold ${h.type === 'add' ? 'text-green-600' : 'text-red-600'}">${h.type === 'add' ? '+' : '-'}${h.qty}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+            }
+            lucide.createIcons();
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('tab-active'));
+            document.getElementById('view-' + tab).classList.add('tab-active');
+            document.getElementById('page-title').innerText = tab === 'inventory' ? 'D.B Power Tool Stock' : 'History';
+        }
+
+        function openScanner(type) {
+            activeOp = type;
+            document.getElementById('scanner-view').classList.remove('hidden');
+            document.getElementById('scanner-title').innerText = type === 'add' ? 'Scan to Restock' : 'Scan to Sell';
+            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
+                html5QrCode.stop();
+                closeScanner();
+                handleScanResult(decodedText);
+            });
+        }
+
+        function handleScanResult(name) {
+            let product = inventory.find(p => p.id === name);
+            if (!product) {
+                product = { id: name, name: name, qty: 0, threshold: 5 };
+                inventory.push(product);
+            }
+            activeId = name;
+            document.getElementById('modal-title').innerText = product.name;
+            document.getElementById('modal-desc').innerText = `Current Stock: ${product.qty}`;
+            const btn = document.getElementById('modal-action-btn');
+            btn.innerText = activeOp === 'add' ? 'Confirm Restock' : 'Confirm Sale';
+            btn.className = `w-full p-3 rounded-lg text-white font-bold ${activeOp === 'add' ? 'bg-green-600' : 'bg-red-600'}`;
+            document.getElementById('modal').classList.remove('hidden');
+        }
+
+        function handleAction() {
+            const qtyInput = document.getElementById('qty-input');
+            const qty = parseInt(qtyInput.value);
+            if (isNaN(qty) || qty <= 0) return;
+            
+            const idx = inventory.findIndex(p => p.id === activeId);
+            
+            /* STOCK DEDUCTION LOGIC: If selling, subtract quantity from current stock, ensuring it doesn't go below 0 */
+            if (activeOp === 'add') {
+                inventory[idx].qty += qty;
+            } else {
+                inventory[idx].qty = Math.max(0, inventory[idx].qty - qty);
+            }
+            
+            const now = new Date();
+            history.push({
+                name: inventory[idx].name,
+                type: activeOp,
+                qty: qty,
+                dateStr: now.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+                time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+
+            localStorage.setItem('store_inventory', JSON.stringify(inventory));
+            localStorage.setItem('store_history', JSON.stringify(history));
+            closeModal();
+            render();
+        }
+
+        document.getElementById('modal-action-btn').onclick = handleAction;
+
+        function closeScanner() { document.getElementById('scanner-view').classList.add('hidden'); }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); document.getElementById('qty-input').value = ''; }
+
+        window.onload = render;
+    </script>
+</body>
+</html>
