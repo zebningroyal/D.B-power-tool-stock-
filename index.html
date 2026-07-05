@@ -2,14 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>D.B Power Tool Stock</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        #scanner-view {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #000; z-index: 100; display: none; flex-direction: column;
+        }
+        #reader { width: 100%; flex-grow: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;}
+        #reader video { object-fit: cover; width: 100%; height: 100%; }
+        
+        .scanner-frame {
+            position: absolute; width: 260px; height: 260px;
+            border: 2px solid white; border-radius: 20px;
+        }
+        
         .tab-content { display: none; }
         .tab-active { display: block; }
     </style>
@@ -17,19 +30,23 @@
 <body class="bg-gray-50 min-h-screen pb-24">
 
     <header class="bg-white shadow-sm p-4 sticky top-0 z-10">
-        <h1 id="page-title" class="text-xl font-bold text-gray-800">D.B Power Tool Stock</h1>
+        <h1 class="text-xl font-bold text-gray-800">D.B Stock Manager</h1>
+        <div class="flex gap-2 mt-4">
+            <button onclick="switchTab('inventory')" id="btn-inventory" class="flex-1 py-2 rounded-lg font-bold text-sm bg-blue-600 text-white">Inventory</button>
+            <button onclick="switchTab('sold')" id="btn-sold" class="flex-1 py-2 rounded-lg font-bold text-sm bg-gray-200 text-gray-600">Sold</button>
+            <button onclick="switchTab('history')" id="btn-history" class="flex-1 py-2 rounded-lg font-bold text-sm bg-gray-200 text-gray-600">History</button>
+        </div>
     </header>
 
     <main class="p-4 space-y-6">
-        
         <div id="quick-actions" class="grid grid-cols-2 gap-4">
-            <button onclick="openScanner('add')" class="flex flex-col items-center justify-center p-6 bg-green-600 text-white rounded-2xl shadow-lg hover:bg-green-700 transition-colors">
+            <button onclick="openScanner('add')" class="flex flex-col items-center justify-center p-6 bg-blue-600 text-white rounded-2xl shadow-lg active:scale-95 transition-all">
                 <i data-lucide="plus-circle" class="w-8 h-8 mb-2"></i>
-                <span class="font-bold">Restock Item</span>
+                <span class="font-bold">Restock</span>
             </button>
-            <button onclick="openScanner('sell')" class="flex flex-col items-center justify-center p-6 bg-red-600 text-white rounded-2xl shadow-lg hover:bg-red-700 transition-colors">
+            <button onclick="openScanner('sell')" class="flex flex-col items-center justify-center p-6 bg-indigo-600 text-white rounded-2xl shadow-lg active:scale-95 transition-all">
                 <i data-lucide="shopping-cart" class="w-8 h-8 mb-2"></i>
-                <span class="font-bold">Sell Item</span>
+                <span class="font-bold">Sell</span>
             </button>
         </div>
 
@@ -38,155 +55,166 @@
             <div id="inventory-list" class="space-y-3"></div>
         </div>
 
+        <div id="view-sold" class="tab-content space-y-4">
+            <h2 class="text-lg font-semibold text-gray-700">Sold Items</h2>
+            <div id="sold-list" class="space-y-3"></div>
+        </div>
+
         <div id="view-history" class="tab-content space-y-4">
-            <h2 class="text-lg font-semibold text-gray-700">Daily History</h2>
+            <h2 class="text-lg font-semibold text-gray-700">Activity History</h2>
             <div id="history-list" class="space-y-3"></div>
         </div>
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-around">
-        <button onclick="switchTab('inventory')" class="flex flex-col items-center text-blue-600"><i data-lucide="package"></i><span class="text-xs mt-1">Stock</span></button>
-        <button onclick="switchTab('history')" class="flex flex-col items-center text-gray-600"><i data-lucide="history"></i><span class="text-xs mt-1">History</span></button>
-    </nav>
-
-    <div id="scanner-view" class="fixed inset-0 bg-white z-50 hidden">
-        <div class="h-full flex flex-col">
-            <div class="p-4 flex justify-between items-center bg-gray-100">
-                <h2 id="scanner-title" class="text-lg font-semibold">Scanning...</h2>
-                <button onclick="closeScanner()" class="p-2 bg-white rounded-lg border">Close</button>
-            </div>
-            <div id="reader" class="flex-grow w-full"></div>
+    <div id="scanner-view">
+        <div class="absolute top-0 w-full p-6 flex justify-between items-center z-10 bg-gradient-to-b from-black/50 to-transparent">
+            <h2 class="text-white font-bold text-lg">Align QR Code</h2>
+            <button onclick="closeScanner()" class="px-5 py-2.5 bg-white/20 backdrop-blur-md text-white rounded-xl font-medium text-sm">Cancel</button>
         </div>
+        <div id="reader"><div class="scanner-frame"></div></div>
     </div>
 
-    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-            <h3 id="modal-title" class="text-xl font-bold mb-2"></h3>
-            <p id="modal-desc" class="text-gray-600 mb-4"></p>
-            <input type="number" id="qty-input" class="w-full border p-3 rounded-lg mb-4 text-lg" placeholder="Enter quantity">
-            <button id="modal-action-btn" class="w-full p-3 rounded-lg text-white font-bold"></button>
-            <button onclick="closeModal()" class="w-full mt-3 text-gray-500 font-medium">Cancel</button>
+    <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity" style="display: none;">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 id="modal-title" class="text-2xl font-black text-gray-900 mb-6">...</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Item Name</label>
+                    <input type="text" id="name-input" class="w-full bg-gray-100 border-none p-4 rounded-xl text-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Quantity</label>
+                    <input type="number" id="qty-input" inputmode="numeric" pattern="[0-9]*" class="w-full bg-blue-50 border-2 border-blue-200 focus:border-blue-500 p-4 rounded-xl text-3xl font-black text-center text-blue-900 outline-none" placeholder="0">
+                    <p id="error-msg" class="text-red-500 text-sm font-bold mt-2 hidden">Not enough stock!</p>
+                </div>
+            </div>
+            <div class="mt-8 flex gap-3">
+                <button onclick="closeModal()" class="flex-1 p-4 rounded-2xl bg-gray-100 text-gray-600 font-bold">Cancel</button>
+                <button id="modal-action-btn" class="flex-[2] p-4 rounded-2xl text-white font-bold shadow-lg">Confirm</button>
+            </div>
         </div>
     </div>
 
     <script>
         let inventory = JSON.parse(localStorage.getItem('store_inventory')) || [];
-        let history = JSON.parse(localStorage.getItem('store_history')) || [];
+        let historyList = JSON.parse(localStorage.getItem('transaction_history')) || [];
         let activeOp = null; 
         let activeId = null;
+        let html5QrCode = null;
 
         function render() {
-            const list = document.getElementById('inventory-list');
-            list.innerHTML = inventory.length === 0 
-                ? '<p class="text-center text-gray-500 mt-10">No items scanned yet.</p>'
+            // Inventory rendering
+            const inventoryList = inventory.length === 0 
+                ? '<div class="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300"><p class="text-gray-500">No items in stock.</p></div>'
                 : inventory.map(item => `
-                <div class="bg-white p-4 rounded-xl shadow-sm border ${item.qty <= item.threshold ? 'border-red-300 bg-red-50' : 'border-gray-100'}">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h3 class="font-bold text-gray-800">${item.name}</h3>
-                            <p class="text-sm text-gray-500">Stock: ${item.qty}</p>
-                        </div>
-                        ${item.qty <= item.threshold ? '<span class="text-red-600 font-bold text-xs bg-red-100 px-2 py-1 rounded">LOW</span>' : ''}
-                    </div>
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
+                    <div><h3 class="font-bold text-gray-900">${item.name}</h3><p class="text-sm text-gray-500 font-medium">Stock: <span class="font-bold text-blue-600">${item.qty}</span></p></div>
+                </div>
+            `).join('');
+            document.getElementById('inventory-list').innerHTML = inventoryList;
+
+            // Sold rendering
+            const soldData = historyList.filter(h => h.type === 'sell');
+            document.getElementById('sold-list').innerHTML = soldData.length === 0 
+                ? '<div class="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300"><p class="text-gray-500">No sales recorded.</p></div>'
+                : soldData.slice().reverse().map(h => `
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
+                    <div><h3 class="font-bold text-gray-900">${h.name}</h3><p class="text-xs text-gray-400 font-medium">${h.timestamp}</p></div>
+                    <div class="font-black text-red-600">-${h.qty}</div>
                 </div>
             `).join('');
 
-            const hist = document.getElementById('history-list');
-            if (history.length === 0) {
-                hist.innerHTML = '<p class="text-center text-gray-500 mt-10">No history available.</p>';
-            } else {
-                const grouped = history.reduce((acc, h) => {
-                    if (!acc[h.dateStr]) acc[h.dateStr] = [];
-                    acc[h.dateStr].push(h);
-                    return acc;
-                }, {});
-
-                hist.innerHTML = Object.keys(grouped).reverse().map(date => `
-                    <div class="space-y-2">
-                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">${date}</h3>
-                        ${grouped[date].slice().reverse().map(h => `
-                            <div class="bg-white p-3 rounded-lg border flex justify-between items-center">
-                                <div>
-                                    <p class="font-semibold">${h.name}</p>
-                                    <p class="text-xs text-gray-500">${h.type.toUpperCase()} @ ${h.time}</p>
-                                </div>
-                                <span class="font-bold ${h.type === 'add' ? 'text-green-600' : 'text-red-600'}">${h.type === 'add' ? '+' : '-'}${h.qty}</span>
-                            </div>
-                        `).join('')}
+            // History rendering
+            const hList = document.getElementById('history-list');
+            hList.innerHTML = historyList.length === 0 
+                ? '<div class="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300"><p class="text-gray-500">No history yet.</p></div>'
+                : historyList.slice().reverse().map(h => `
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
+                    <div><h3 class="font-bold text-gray-900">${h.name}</h3><p class="text-xs text-gray-400 font-medium">${h.timestamp}</p></div>
+                    <div class="font-black ${h.type === 'restock' ? 'text-green-600' : 'text-red-600'}">
+                        ${h.type === 'restock' ? '+' : '-'}${h.qty}
                     </div>
-                `).join('');
-            }
-            lucide.createIcons();
+                </div>
+            `).join('');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('tab-active'));
             document.getElementById('view-' + tab).classList.add('tab-active');
-            document.getElementById('page-title').innerText = tab === 'inventory' ? 'D.B Power Tool Stock' : 'History';
+            ['inventory', 'sold', 'history'].forEach(t => {
+                const btn = document.getElementById('btn-' + t);
+                btn.className = tab === t 
+                    ? 'flex-1 py-2 rounded-lg font-bold text-sm bg-blue-600 text-white' 
+                    : 'flex-1 py-2 rounded-lg font-bold text-sm bg-gray-200 text-gray-600';
+            });
         }
 
-        function openScanner(type) {
-            activeOp = type;
-            document.getElementById('scanner-view').classList.remove('hidden');
-            document.getElementById('scanner-title').innerText = type === 'add' ? 'Scan to Restock' : 'Scan to Sell';
-            const html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
-                html5QrCode.stop();
-                closeScanner();
+        async function openScanner(mode) {
+            activeOp = mode;
+            document.getElementById('scanner-view').style.display = 'flex';
+            html5QrCode = new Html5Qrcode("reader");
+            await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
                 handleScanResult(decodedText);
             });
         }
 
-        function handleScanResult(name) {
-            let product = inventory.find(p => p.id === name);
-            if (!product) {
-                product = { id: name, name: name, qty: 0, threshold: 5 };
-                inventory.push(product);
-            }
-            activeId = name;
-            document.getElementById('modal-title').innerText = product.name;
-            document.getElementById('modal-desc').innerText = `Current Stock: ${product.qty}`;
-            const btn = document.getElementById('modal-action-btn');
-            btn.innerText = activeOp === 'add' ? 'Confirm Restock' : 'Confirm Sale';
-            btn.className = `w-full p-3 rounded-lg text-white font-bold ${activeOp === 'add' ? 'bg-green-600' : 'bg-red-600'}`;
-            document.getElementById('modal').classList.remove('hidden');
+        async function closeScanner() {
+            if (html5QrCode && html5QrCode.isScanning) await html5QrCode.stop();
+            document.getElementById('scanner-view').style.display = 'none';
         }
 
-        function handleAction() {
-            const qtyInput = document.getElementById('qty-input');
-            const qty = parseInt(qtyInput.value);
-            if (isNaN(qty) || qty <= 0) return;
+        function handleScanResult(scannedText) {
+            closeScanner();
+            let product = inventory.find(p => p.id === scannedText);
+            activeId = scannedText;
+            const nameInput = document.getElementById('name-input');
+            nameInput.value = product ? product.name : scannedText;
+            nameInput.disabled = !!product;
+            document.getElementById('modal-title').innerText = activeOp === 'add' ? 'Restock Item' : 'Sell Item';
+            const btn = document.getElementById('modal-action-btn');
+            btn.className = `flex-[2] p-4 rounded-2xl text-white font-bold shadow-lg ${activeOp === 'add' ? 'bg-blue-600 shadow-blue-500/30' : 'bg-indigo-600 shadow-indigo-500/30'}`;
+            btn.innerText = activeOp === 'add' ? 'Confirm Restock' : 'Confirm Sale';
+            document.getElementById('modal').style.display = 'flex';
+            document.getElementById('qty-input').focus();
+        }
+
+        document.getElementById('modal-action-btn').onclick = () => {
+            const qty = parseInt(document.getElementById('qty-input').value);
+            const name = document.getElementById('name-input').value.trim();
+            const errorMsg = document.getElementById('error-msg');
             
-            const idx = inventory.findIndex(p => p.id === activeId);
+            if (isNaN(qty) || qty <= 0 || !name) return;
             
-            /* STOCK DEDUCTION LOGIC: If selling, subtract quantity from current stock, ensuring it doesn't go below 0 */
+            let idx = inventory.findIndex(p => p.id === activeId);
+            
+            if (activeOp === 'sell') {
+                if (idx === -1 || inventory[idx].qty < qty) {
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+            }
+            
+            errorMsg.classList.add('hidden');
+            
+            if (idx === -1) { inventory.push({ id: activeId, name: name, qty: 0 }); idx = inventory.length - 1; }
+            else { inventory[idx].name = name; }
+            
             if (activeOp === 'add') {
                 inventory[idx].qty += qty;
+                historyList.push({ name: name, qty: qty, type: 'restock', timestamp: new Date().toLocaleString() });
             } else {
-                inventory[idx].qty = Math.max(0, inventory[idx].qty - qty);
+                inventory[idx].qty -= qty;
+                historyList.push({ name: name, qty: qty, type: 'sell', timestamp: new Date().toLocaleString() });
             }
             
-            const now = new Date();
-            history.push({
-                name: inventory[idx].name,
-                type: activeOp,
-                qty: qty,
-                dateStr: now.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
-                time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            });
-
             localStorage.setItem('store_inventory', JSON.stringify(inventory));
-            localStorage.setItem('store_history', JSON.stringify(history));
-            closeModal();
-            render();
-        }
+            localStorage.setItem('transaction_history', JSON.stringify(historyList));
+            closeModal(); render();
+        };
 
-        document.getElementById('modal-action-btn').onclick = handleAction;
-
-        function closeScanner() { document.getElementById('scanner-view').classList.add('hidden'); }
-        function closeModal() { document.getElementById('modal').classList.add('hidden'); document.getElementById('qty-input').value = ''; }
-
-        window.onload = render;
+        function closeModal() { document.getElementById('modal').style.display = 'none'; document.getElementById('qty-input').value = ''; document.getElementById('error-msg').classList.add('hidden'); }
+        window.onload = () => { render(); };
     </script>
 </body>
 </html>
