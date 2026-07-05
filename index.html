@@ -1,227 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>D.B Power Tool Stock</title>
-    <script src="[cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <script src="[unpkg.com](https://unpkg.com/html5-qrcode)"></script>
-    <script src="[unpkg.com](https://unpkg.com/lucide@latest)"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('[fonts.googleapis.com](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap)');
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            background:
-                radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 30%),
-                radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 28%),
-                #f8fafc;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
         #scanner-view {
-            position: fixed;
-            inset: 0;
-            background: #020617;
-            z-index: 100;
-            display: none;
-            flex-direction: column;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #000; z-index: 100; display: none; flex-direction: column;
         }
-
-        #reader {
-            width: 100%;
-            flex-grow: 1;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        #reader video {
-            object-fit: cover;
-            width: 100%;
-            height: 100%;
-            filter: contrast(1.03) saturate(1.05);
-        }
-
+        #reader { width: 100%; flex-grow: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;}
+        #reader video { object-fit: cover; width: 100%; height: 100%; }
+        
         .scanner-frame {
-            position: absolute;
-            width: 260px;
-            height: 260px;
-            border: 2px solid rgba(255,255,255,0.95);
-            border-radius: 24px;
-            box-shadow:
-                0 0 0 9999px rgba(2, 6, 23, 0.45),
-                0 0 0 1px rgba(255,255,255,0.12) inset;
+            position: absolute; width: 260px; height: 260px;
+            border: 2px solid white; border-radius: 20px;
         }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-active {
-            display: block;
-        }
-
-        .glass {
-            background: rgba(255,255,255,0.72);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-        }
-
-        .soft-card {
-            background: rgba(255,255,255,0.92);
-            border: 1px solid rgba(226,232,240,0.9);
-            box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
-        }
-
-        .animate-press:active {
-            transform: scale(0.98);
-        }
-
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-
-        .hide-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        
+        .tab-content { display: none; }
+        .tab-active { display: block; }
     </style>
 </head>
-<body class="min-h-screen text-slate-900 pb-28">
+<body class="bg-gray-50 min-h-screen pb-24">
 
-    <header class="sticky top-0 z-20 border-b border-slate-200/70 glass">
-        <div class="max-w-md mx-auto px-4 pt-5 pb-4">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p class="text-xs font-semibold tracking-[0.22em] uppercase text-slate-400">Inventory System</p>
-                    <h1 class="text-2xl font-extrabold text-slate-900 mt-1">D.B Stock Manager</h1>
-                    <p class="text-sm text-slate-500 mt-1">Track stock, sales, and activity in one place</p>
-                </div>
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <i data-lucide="package-2" class="w-6 h-6"></i>
-                </div>
-            </div>
-
-            <div class="mt-5 p-1.5 bg-slate-100 rounded-2xl flex gap-2">
-                <button onclick="switchTab('inventory')" id="btn-inventory" class="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-white text-blue-700 shadow-sm">
-                    Inventory
-                </button>
-                <button onclick="switchTab('sold')" id="btn-sold" class="flex-1 py-2.5 rounded-xl font-semibold text-sm text-slate-500">
-                    Sold
-                </button>
-                <button onclick="switchTab('history')" id="btn-history" class="flex-1 py-2.5 rounded-xl font-semibold text-sm text-slate-500">
-                    History
-                </button>
-            </div>
+    <header class="bg-white shadow-sm p-4 sticky top-0 z-10">
+        <h1 class="text-xl font-bold text-gray-800">D.B Stock Manager</h1>
+        <div class="flex gap-2 mt-4">
+            <button onclick="switchTab('inventory')" id="btn-inventory" class="flex-1 py-2 rounded-lg font-bold text-sm bg-blue-600 text-white">Inventory</button>
+            <button onclick="switchTab('sold')" id="btn-sold" class="flex-1 py-2 rounded-lg font-bold text-sm bg-gray-200 text-gray-600">Sold</button>
+            <button onclick="switchTab('history')" id="btn-history" class="flex-1 py-2 rounded-lg font-bold text-sm bg-gray-200 text-gray-600">History</button>
         </div>
     </header>
 
-    <main class="max-w-md mx-auto px-4 py-5 space-y-6">
-        <section id="quick-actions" class="grid grid-cols-2 gap-4">
-            <button onclick="openScanner('add')" class="animate-press group relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-blue-700 p-5 text-left text-white shadow-xl shadow-blue-500/20">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-                <div class="relative">
-                    <div class="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center mb-4">
-                        <i data-lucide="plus-circle" class="w-6 h-6"></i>
-                    </div>
-                    <p class="text-lg font-bold">Restock</p>
-                    <p class="text-sm text-blue-100 mt-1">Add tools into inventory</p>
-                </div>
+    <main class="p-4 space-y-6">
+        <div id="quick-actions" class="grid grid-cols-2 gap-4">
+            <button onclick="openScanner('add')" class="flex flex-col items-center justify-center p-6 bg-blue-600 text-white rounded-2xl shadow-lg active:scale-95 transition-all">
+                <i data-lucide="plus-circle" class="w-8 h-8 mb-2"></i>
+                <span class="font-bold">Restock</span>
             </button>
-
-            <button onclick="openScanner('sell')" class="animate-press group relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 p-5 text-left text-white shadow-xl shadow-indigo-500/20">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-                <div class="relative">
-                    <div class="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center mb-4">
-                        <i data-lucide="shopping-cart" class="w-6 h-6"></i>
-                    </div>
-                    <p class="text-lg font-bold">Sell</p>
-                    <p class="text-sm text-indigo-100 mt-1">Reduce stock after sale</p>
-                </div>
+            <button onclick="openScanner('sell')" class="flex flex-col items-center justify-center p-6 bg-indigo-600 text-white rounded-2xl shadow-lg active:scale-95 transition-all">
+                <i data-lucide="shopping-cart" class="w-8 h-8 mb-2"></i>
+                <span class="font-bold">Sell</span>
             </button>
-        </section>
+        </div>
 
         <div id="view-inventory" class="tab-content tab-active space-y-4">
-            <div class="flex items-center justify-between">
-                <h2 class="text-base font-bold text-slate-800">Current Stock</h2>
-                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100" id="inventory-count-badge">0 items</span>
-            </div>
+            <h2 class="text-lg font-semibold text-gray-700">Current Stock</h2>
             <div id="inventory-list" class="space-y-3"></div>
         </div>
 
         <div id="view-sold" class="tab-content space-y-4">
-            <div class="flex items-center justify-between">
-                <h2 class="text-base font-bold text-slate-800">Sold Items</h2>
-                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-100" id="sold-count-badge">0 sales</span>
-            </div>
+            <h2 class="text-lg font-semibold text-gray-700">Sold Items</h2>
             <div id="sold-list" class="space-y-3"></div>
         </div>
 
         <div id="view-history" class="tab-content space-y-4">
-            <div class="flex items-center justify-between">
-                <h2 class="text-base font-bold text-slate-800">Activity History</h2>
-                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200" id="history-count-badge">0 records</span>
-            </div>
+            <h2 class="text-lg font-semibold text-gray-700">Activity History</h2>
             <div id="history-list" class="space-y-3"></div>
         </div>
     </main>
 
     <div id="scanner-view">
-        <div class="absolute top-0 left-0 w-full z-10 px-5 pt-6 pb-4 bg-gradient-to-b from-black/70 to-transparent">
-            <div class="max-w-md mx-auto flex items-center justify-between">
-                <div>
-                    <h2 class="text-white text-lg font-bold">Scan QR Code</h2>
-                    <p class="text-white/70 text-sm mt-1">Align the code inside the frame</p>
-                </div>
-                <button onclick="closeScanner()" class="px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 backdrop-blur-md text-white font-semibold text-sm">
-                    Cancel
-                </button>
-            </div>
+        <div class="absolute top-0 w-full p-6 flex justify-between items-center z-10 bg-gradient-to-b from-black/50 to-transparent">
+            <h2 class="text-white font-bold text-lg">Align QR Code</h2>
+            <button onclick="closeScanner()" class="px-5 py-2.5 bg-white/20 backdrop-blur-md text-white rounded-xl font-medium text-sm">Cancel</button>
         </div>
-        <div id="reader">
-            <div class="scanner-frame"></div>
-        </div>
+        <div id="reader"><div class="scanner-frame"></div></div>
     </div>
 
-    <div id="modal" class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-        <div class="w-full max-w-sm rounded-[28px] bg-white border border-slate-200 shadow-2xl shadow-slate-900/15 p-6">
-            <div class="flex items-start justify-between gap-3">
+    <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity" style="display: none;">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 id="modal-title" class="text-2xl font-black text-gray-900 mb-6">...</h3>
+            <div class="space-y-4">
                 <div>
-                    <p class="text-xs font-semibold tracking-[0.22em] uppercase text-slate-400">Transaction</p>
-                    <h3 id="modal-title" class="text-2xl font-extrabold text-slate-900 mt-1">...</h3>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Item Name</label>
+                    <input type="text" id="name-input" class="w-full bg-gray-100 border-none p-4 rounded-xl text-lg font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                <div id="modal-icon-wrap" class="w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-50 text-blue-700">
-                    <i id="modal-icon" data-lucide="package-plus" class="w-6 h-6"></i>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Quantity</label>
+                    <input type="number" id="qty-input" inputmode="numeric" pattern="[0-9]*" class="w-full bg-blue-50 border-2 border-blue-200 focus:border-blue-500 p-4 rounded-xl text-3xl font-black text-center text-blue-900 outline-none" placeholder="0">
+                    <p id="error-msg" class="text-red-500 text-sm font-bold mt-2 hidden">Not enough stock!</p>
                 </div>
             </div>
-
-            <div class="space-y-4 mt-6">
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-[0.18em] mb-2">Item Name</label>
-                    <input type="text" id="name-input" class="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-base font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter item name" />
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-[0.18em] mb-2">Quantity</label>
-                    <input type="number" id="qty-input" inputmode="numeric" pattern="[0-9]*" class="w-full bg-blue-50 border-2 border-blue-200 focus:border-blue-500 p-4 rounded-2xl text-3xl font-extrabold text-center text-blue-900 outline-none" placeholder="0" />
-                    <p id="error-msg" class="text-rose-500 text-sm font-semibold mt-2 hidden">Not enough stock available.</p>
-                </div>
-            </div>
-
             <div class="mt-8 flex gap-3">
-                <button onclick="closeModal()" class="flex-1 p-4 rounded-2xl bg-slate-100 text-slate-600 font-bold">
-                    Cancel
-                </button>
-                <button id="modal-action-btn" class="flex-[1.7] p-4 rounded-2xl text-white font-bold shadow-lg">
-                    Confirm
-                </button>
+                <button onclick="closeModal()" class="flex-1 p-4 rounded-2xl bg-gray-100 text-gray-600 font-bold">Cancel</button>
+                <button id="modal-action-btn" class="flex-[2] p-4 rounded-2xl text-white font-bold shadow-lg">Confirm</button>
             </div>
         </div>
     </div>
@@ -229,106 +98,55 @@
     <script>
         let inventory = JSON.parse(localStorage.getItem('store_inventory')) || [];
         let historyList = JSON.parse(localStorage.getItem('transaction_history')) || [];
-        let activeOp = null;
+        let activeOp = null; 
         let activeId = null;
         let html5QrCode = null;
 
-        function emptyState(message, icon = 'inbox') {
-            return `
-                <div class="soft-card rounded-3xl p-8 text-center">
-                    <div class="w-14 h-14 mx-auto rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mb-4">
-                        <i data-lucide="${icon}" class="w-7 h-7"></i>
-                    </div>
-                    <p class="text-slate-500 font-medium">${message}</p>
-                </div>
-            `;
-        }
-
         function render() {
-            document.getElementById('inventory-count-badge').innerText = `${inventory.length} item${inventory.length !== 1 ? 's' : ''}`;
-
-            const soldData = historyList.filter(h => h.type === 'sell');
-            document.getElementById('sold-count-badge').innerText = `${soldData.length} sale${soldData.length !== 1 ? 's' : ''}`;
-            document.getElementById('history-count-badge').innerText = `${historyList.length} record${historyList.length !== 1 ? 's' : ''}`;
-
-            const inventoryList = inventory.length === 0
-                ? emptyState('No items in stock yet.', 'boxes')
+            // Inventory rendering
+            const inventoryList = inventory.length === 0 
+                ? '<div class="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300"><p class="text-gray-500">No items in stock.</p></div>'
                 : inventory.map(item => `
-                    <div class="soft-card rounded-3xl p-4 flex items-center justify-between">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-                                <i data-lucide="wrench" class="w-5 h-5"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <h3 class="font-bold text-slate-900 truncate">${item.name}</h3>
-                                <p class="text-sm text-slate-500 mt-0.5">Product ID: <span class="font-medium">${item.id}</span></p>
-                            </div>
-                        </div>
-                        <div class="text-right ml-3">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Stock</p>
-                            <p class="text-xl font-extrabold text-blue-700">${item.qty}</p>
-                        </div>
-                    </div>
-                `).join('');
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
+                    <div><h3 class="font-bold text-gray-900">${item.name}</h3><p class="text-sm text-gray-500 font-medium">Stock: <span class="font-bold text-blue-600">${item.qty}</span></p></div>
+                </div>
+            `).join('');
             document.getElementById('inventory-list').innerHTML = inventoryList;
 
-            document.getElementById('sold-list').innerHTML = soldData.length === 0
-                ? emptyState('No sales recorded yet.', 'badge-dollar-sign')
+            // Sold rendering
+            const soldData = historyList.filter(h => h.type === 'sell');
+            document.getElementById('sold-list').innerHTML = soldData.length === 0 
+                ? '<div class="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300"><p class="text-gray-500">No sales recorded.</p></div>'
                 : soldData.slice().reverse().map(h => `
-                    <div class="soft-card rounded-3xl p-4 flex items-center justify-between">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0">
-                                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <h3 class="font-bold text-slate-900 truncate">${h.name}</h3>
-                                <p class="text-xs text-slate-400 font-medium mt-1">${h.timestamp}</p>
-                            </div>
-                        </div>
-                        <div class="text-right ml-3">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Sold</p>
-                            <p class="text-xl font-extrabold text-rose-600">-${h.qty}</p>
-                        </div>
-                    </div>
-                `).join('');
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
+                    <div><h3 class="font-bold text-gray-900">${h.name}</h3><p class="text-xs text-gray-400 font-medium">${h.timestamp}</p></div>
+                    <div class="font-black text-red-600">-${h.qty}</div>
+                </div>
+            `).join('');
 
+            // History rendering
             const hList = document.getElementById('history-list');
-            hList.innerHTML = historyList.length === 0
-                ? emptyState('No activity history yet.', 'history')
+            hList.innerHTML = historyList.length === 0 
+                ? '<div class="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300"><p class="text-gray-500">No history yet.</p></div>'
                 : historyList.slice().reverse().map(h => `
-                    <div class="soft-card rounded-3xl p-4 flex items-center justify-between">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-12 h-12 rounded-2xl ${h.type === 'restock' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'} flex items-center justify-center shrink-0">
-                                <i data-lucide="${h.type === 'restock' ? 'arrow-down-to-line' : 'arrow-up-from-line'}" class="w-5 h-5"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <h3 class="font-bold text-slate-900 truncate">${h.name}</h3>
-                                <p class="text-xs text-slate-400 font-medium mt-1">${h.timestamp}</p>
-                            </div>
-                        </div>
-                        <div class="text-right ml-3">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">${h.type}</p>
-                            <p class="text-xl font-extrabold ${h.type === 'restock' ? 'text-emerald-600' : 'text-rose-600'}">
-                                ${h.type === 'restock' ? '+' : '-'}${h.qty}
-                            </p>
-                        </div>
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
+                    <div><h3 class="font-bold text-gray-900">${h.name}</h3><p class="text-xs text-gray-400 font-medium">${h.timestamp}</p></div>
+                    <div class="font-black ${h.type === 'restock' ? 'text-green-600' : 'text-red-600'}">
+                        ${h.type === 'restock' ? '+' : '-'}${h.qty}
                     </div>
-                `).join('');
-
+                </div>
+            `).join('');
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('tab-active'));
             document.getElementById('view-' + tab).classList.add('tab-active');
-
             ['inventory', 'sold', 'history'].forEach(t => {
                 const btn = document.getElementById('btn-' + t);
-                if (tab === t) {
-                    btn.className = 'flex-1 py-2.5 rounded-xl font-semibold text-sm bg-white text-blue-700 shadow-sm';
-                } else {
-                    btn.className = 'flex-1 py-2.5 rounded-xl font-semibold text-sm text-slate-500';
-                }
+                btn.className = tab === t 
+                    ? 'flex-1 py-2 rounded-lg font-bold text-sm bg-blue-600 text-white' 
+                    : 'flex-1 py-2 rounded-lg font-bold text-sm bg-gray-200 text-gray-600';
             });
         }
 
@@ -336,138 +154,67 @@
             activeOp = mode;
             document.getElementById('scanner-view').style.display = 'flex';
             html5QrCode = new Html5Qrcode("reader");
-
-            try {
-                await html5QrCode.start(
-                    { facingMode: "environment" },
-                    { fps: 10, qrbox: 250 },
-                    (decodedText) => {
-                        handleScanResult(decodedText);
-                    }
-                );
-            } catch (error) {
-                console.error("Scanner failed:", error);
-                alert("Unable to access camera. Please allow camera permission.");
-                closeScanner();
-            }
+            await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
+                handleScanResult(decodedText);
+            });
         }
 
         async function closeScanner() {
-            try {
-                if (html5QrCode) {
-                    await html5QrCode.stop();
-                    await html5QrCode.clear();
-                }
-            } catch (error) {
-                console.warn("Scanner stop warning:", error);
-            }
-
-            html5QrCode = null;
+            if (html5QrCode && html5QrCode.isScanning) await html5QrCode.stop();
             document.getElementById('scanner-view').style.display = 'none';
         }
 
         function handleScanResult(scannedText) {
             closeScanner();
-
             let product = inventory.find(p => p.id === scannedText);
             activeId = scannedText;
-
             const nameInput = document.getElementById('name-input');
-            const qtyInput = document.getElementById('qty-input');
-            const title = document.getElementById('modal-title');
-            const btn = document.getElementById('modal-action-btn');
-            const iconWrap = document.getElementById('modal-icon-wrap');
-            const icon = document.getElementById('modal-icon');
-
             nameInput.value = product ? product.name : scannedText;
-            nameInput.disabled = !!product && activeOp === 'sell';
-            qtyInput.value = '';
-
-            if (activeOp === 'add') {
-                title.innerText = 'Restock Item';
-                btn.className = 'flex-[1.7] p-4 rounded-2xl text-white font-bold shadow-lg bg-blue-600 shadow-blue-500/25';
-                btn.innerText = 'Confirm Restock';
-                iconWrap.className = 'w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-50 text-blue-700';
-                icon.setAttribute('data-lucide', 'package-plus');
-            } else {
-                title.innerText = 'Sell Item';
-                btn.className = 'flex-[1.7] p-4 rounded-2xl text-white font-bold shadow-lg bg-indigo-600 shadow-indigo-500/25';
-                btn.innerText = 'Confirm Sale';
-                iconWrap.className = 'w-12 h-12 rounded-2xl flex items-center justify-center bg-indigo-50 text-indigo-700';
-                icon.setAttribute('data-lucide', 'shopping-cart');
-            }
-
-            document.getElementById('error-msg').classList.add('hidden');
-            document.getElementById('modal').classList.remove('hidden');
-            document.getElementById('modal').classList.add('flex');
-
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-            qtyInput.focus();
+            nameInput.disabled = !!product;
+            document.getElementById('modal-title').innerText = activeOp === 'add' ? 'Restock Item' : 'Sell Item';
+            const btn = document.getElementById('modal-action-btn');
+            btn.className = `flex-[2] p-4 rounded-2xl text-white font-bold shadow-lg ${activeOp === 'add' ? 'bg-blue-600 shadow-blue-500/30' : 'bg-indigo-600 shadow-indigo-500/30'}`;
+            btn.innerText = activeOp === 'add' ? 'Confirm Restock' : 'Confirm Sale';
+            document.getElementById('modal').style.display = 'flex';
+            document.getElementById('qty-input').focus();
         }
 
         document.getElementById('modal-action-btn').onclick = () => {
             const qty = parseInt(document.getElementById('qty-input').value);
             const name = document.getElementById('name-input').value.trim();
             const errorMsg = document.getElementById('error-msg');
-
+            
             if (isNaN(qty) || qty <= 0 || !name) return;
-
+            
             let idx = inventory.findIndex(p => p.id === activeId);
-
+            
             if (activeOp === 'sell') {
                 if (idx === -1 || inventory[idx].qty < qty) {
                     errorMsg.classList.remove('hidden');
                     return;
                 }
             }
-
+            
             errorMsg.classList.add('hidden');
-
-            if (idx === -1) {
-                inventory.push({ id: activeId, name: name, qty: 0 });
-                idx = inventory.length - 1;
-            } else {
-                inventory[idx].name = name;
-            }
-
+            
+            if (idx === -1) { inventory.push({ id: activeId, name: name, qty: 0 }); idx = inventory.length - 1; }
+            else { inventory[idx].name = name; }
+            
             if (activeOp === 'add') {
                 inventory[idx].qty += qty;
-                historyList.push({
-                    name: name,
-                    qty: qty,
-                    type: 'restock',
-                    timestamp: new Date().toLocaleString()
-                });
+                historyList.push({ name: name, qty: qty, type: 'restock', timestamp: new Date().toLocaleString() });
             } else {
                 inventory[idx].qty -= qty;
-                historyList.push({
-                    name: name,
-                    qty: qty,
-                    type: 'sell',
-                    timestamp: new Date().toLocaleString()
-                });
+                historyList.push({ name: name, qty: qty, type: 'sell', timestamp: new Date().toLocaleString() });
             }
-
-            inventory = inventory.filter(item => item.qty > 0);
-
+            
             localStorage.setItem('store_inventory', JSON.stringify(inventory));
             localStorage.setItem('transaction_history', JSON.stringify(historyList));
-
-            closeModal();
-            render();
+            closeModal(); render();
         };
 
-        function closeModal() {
-            document.getElementById('modal').classList.add('hidden');
-            document.getElementById('modal').classList.remove('flex');
-            document.getElementById('qty-input').value = '';
-            document.getElementById('error-msg').classList.add('hidden');
-            document.getElementById('name-input').disabled = false;
-        }
-
-        window.onload = () => {
-            render();
-        };
+        function closeModal() { document.getElementById('modal').style.display = 'none'; document.getElementById('qty-input').value = ''; document.getElementById('error-msg').classList.add('hidden'); }
+        window.onload = () => { render(); };
     </script>
 </body>
 </html>
